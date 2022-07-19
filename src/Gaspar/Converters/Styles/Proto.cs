@@ -13,9 +13,9 @@ using System.Reflection;
 namespace WCKDRZR.Gaspar.Converters
 {
     internal class ProtoConverter : IConverter
-	{
+    {
         public Configuration Config { get; set; }
-        
+
         public Dictionary<string, string> DefaultTypeTranslations = new() {
             { "string", "string" },
             { "String", "string" },
@@ -29,7 +29,7 @@ namespace WCKDRZR.Gaspar.Converters
         };
         public Dictionary<string, string> TypeTranslations => DefaultTypeTranslations.Union(Config.CustomTypeTranslations ?? new()).ToDictionary(k => k.Key, v => v.Value);
         public string ConvertType(string type) => TypeTranslations.ContainsKey(type) ? TypeTranslations[type] : type;
-
+        public string ProtoPrefix(string type) => DefaultTypeTranslations.ContainsValue(type)? type : type.StartsWith("repeated") ? type : $"Proto_{type}";
         public string arrayRegex = /*language=regex*/ @"^(.+)\[\]$";
         public string simpleCollectionRegex = /*language=regex*/ @"^(?:I?List|IReadOnlyList|IEnumerable|ICollection|IReadOnlyCollection|HashSet)<([\w\d]+)>\??$";
         public string collectionRegex = /*language=regex*/ @"^(?:I?List|IReadOnlyList|IEnumerable|ICollection|IReadOnlyCollection|HashSet)<(.+)>\??$";
@@ -105,7 +105,7 @@ namespace WCKDRZR.Gaspar.Converters
                 throw new NotImplementedException();
             }
 
-            lines.Add($"message {model.ModelName} {{");
+            lines.Add($"message {ProtoPrefix(model.ModelName)} {{");
 
             int count = 1;
             foreach (Property property in model.Fields.Concat(model.Properties))
@@ -118,7 +118,7 @@ namespace WCKDRZR.Gaspar.Converters
                 lines.Add($"    oneof subtype {{");
                 foreach(string implementingClass in InterfaceImplementations[model.ModelName])
                 {
-                    lines.Add($"      {implementingClass} {implementingClass} = {count++};");
+                    lines.Add($"      {ProtoPrefix(implementingClass)} {implementingClass} = {count++};");
                 }
                 lines.Add("    }");
             }
@@ -138,7 +138,7 @@ namespace WCKDRZR.Gaspar.Converters
             }
             else
             {
-                lines.Add($"enum {enumModel.Identifier} {{");
+                lines.Add($"enum {ProtoPrefix(enumModel.Identifier)} {{");
 
                 int i = 0;
                 foreach (KeyValuePair<string, object> value in enumModel.Values)
@@ -189,7 +189,7 @@ namespace WCKDRZR.Gaspar.Converters
 
             string type = ParseType(property.Type);
 
-            return $"{type} {identifier} = {count}";
+            return $"{ProtoPrefix(type)} {identifier} = {count}";
         }
 
         public static string ConvertIdentifier(string identifier) => JsonNamingPolicy.CamelCase.ConvertName(identifier);
@@ -210,12 +210,12 @@ namespace WCKDRZR.Gaspar.Converters
             if (array.HasMatch())
             {
                 propType = array.At(1);
-                return $"repeated {propType}";
+                return $"repeated {ProtoPrefix(propType)}";
             } else if (collection.HasMatch())
             {
                 MatchCollection simpleCollection = Regex.Matches(propType, simpleCollectionRegex);
                 propType = simpleCollection.HasMatch() ? collection.At(1) : ParseType(collection.At(1));
-                return $"repeated {propType}";
+                return $"repeated {ProtoPrefix(propType)}";
             }
 
             MatchCollection dictionary = Regex.Matches(propType, dictionaryRegex);
@@ -224,7 +224,7 @@ namespace WCKDRZR.Gaspar.Converters
             {
                 string key = dictionary.At(1);
                 string value = dictionary.At(2);
-                return $"map<{key}, {value}>";
+                return $"map<{ProtoPrefix(key)}, {ProtoPrefix(value)}>";
             }
             return ConvertType(propType); ;
         }
