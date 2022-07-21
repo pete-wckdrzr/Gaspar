@@ -92,7 +92,7 @@ The class provided must implement a generic `Deserialize<T>` method that returns
 
 ## Disable Export on Build
 
-Gaspar will export files on build.  If you would like to disable this add the following to the `PropertyGroup` of you csproj file
+Gaspar will export files on build.  If you would like to disable this add the following to the `PropertyGroup` of you csproj file.
 
 - `<RunGaspar>False</RunGaspar>`
 
@@ -185,7 +185,7 @@ export class MyAngularPage {
 }
 ```
 
-#### To use in C#
+#### To use in C #
 
 ```csharp
 using WCKDRZR.Gaspar.Models;
